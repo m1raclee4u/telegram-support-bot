@@ -97,6 +97,14 @@ class TelegramAddon implements Addon {
     }
   }
 
+  async editForumTopic(chatId: string | number, threadId: number, name: string): Promise<void> {
+    try {
+      await this.bot.api.editForumTopic(chatId, threadId, { name: name.slice(0, 128) });
+    } catch (err) {
+      log.error('Could not rename forum topic: ', err);
+    }
+  }
+
   command(command: string, callback: (ctx: any) => void): void {
     this.bot.command(command, ctx => callback(ctx));
   }

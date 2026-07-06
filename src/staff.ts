@@ -181,6 +181,14 @@ async function chat(ctx: Context) {
   // Auto-close the ticket if enabled
   if (cache.config.auto_close_tickets) {
       db.add(ticketId, 'closed', null, ticket.messenger);
+      if (ticket.threadId) {
+        middleware.editForumTopicName(
+          cache.config.staffchat_id,
+          ticket.messenger,
+          ticket.threadId,
+          db.ticketTopicName(ticket.ticketId, name, 'closed'),
+        );
+      }
   }
 }
 

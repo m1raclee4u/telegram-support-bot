@@ -82,6 +82,19 @@ export async function getTicketById(
   return result as ISupportee | null;
 };
 
+/**
+ * Builds a forum topic name that reflects the ticket's status via emoji
+ * (🟢 open, 🔴 closed), e.g. "🟢 #T000001 John".
+ */
+export function ticketTopicName(
+  ticketId: number,
+  name: string | null,
+  status: 'open' | 'closed',
+): string {
+  const emoji = status === 'closed' ? '🔴' : '🟢';
+  return `${emoji} #T${ticketId.toString().padStart(6, '0')} ${name || ''}`.trim().slice(0, 128);
+}
+
 export async function getTicketByThreadId (
   threadId: number
 ): Promise<ISupportee | null> {

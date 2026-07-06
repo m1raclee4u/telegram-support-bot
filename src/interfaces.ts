@@ -189,7 +189,12 @@ export class Context {
     type: string;
   };
   session: SessionData;
-  callbackQuery: { data: string; from: { id: any }; id: any };
+  callbackQuery: {
+    data: string;
+    from: { id: any };
+    id: any;
+    message?: { chat: { id: string }; message_thread_id?: number };
+  };
   from: { username: any; id: string };
   inlineQuery: any;
   reply: Function;
@@ -263,6 +268,15 @@ export interface Addon {
    * @param name The topic name.
    */
   createForumTopic?(chatId: string | number, name: string): Promise<number | null>;
+
+  /**
+   * Renames a forum topic (e.g. to reflect a ticket's open/closed status).
+   * No-op if unsupported by the platform.
+   * @param chatId The target chat identifier.
+   * @param threadId The forum topic's message_thread_id.
+   * @param name The new topic name.
+   */
+  editForumTopic?(chatId: string | number, threadId: number, name: string): Promise<void>;
 }
 
 export enum Messenger {

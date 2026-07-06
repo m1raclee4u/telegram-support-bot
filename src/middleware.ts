@@ -66,6 +66,26 @@ async function sendMessage (
 };
 
 /**
+ * Renames a forum topic (e.g. to reflect a ticket's open/closed status).
+ * No-op for non-Telegram messengers.
+ *
+ * @param chatId - The staff chat id.
+ * @param messenger - The messenger type.
+ * @param threadId - The forum topic's message_thread_id.
+ * @param name - The new topic name.
+ */
+async function editForumTopicName(
+  chatId: string | number,
+  messenger: string,
+  threadId: number,
+  name: string,
+): Promise<void> {
+  if ((messenger as Messenger) === Messenger.TELEGRAM) {
+    await TelegramAddon.getInstance().editForumTopic(chatId, threadId, name);
+  }
+}
+
+/**
  * Replies to a message within the given context.
  *
  * @param ctx - The message context.
@@ -77,12 +97,14 @@ const reply = (
   msgText: string,
   extra: any = { parse_mode: cache.config.parse_mode }
 ): void => {
-  // Keep the reply inside the forum topic (if any) the incoming message came from.
-  const threadId = ctx.message?.message_thread_id;
+  // ctx.message is undefined for callback_query updates (e.g. inline button
+  // presses) - fall back to the chat the button's message was posted in.
+  const chatId = ctx.message?.chat.id ?? ctx.callbackQuery?.message?.chat.id;
+  const threadId = ctx.message?.message_thread_id ?? ctx.callbackQuery?.message?.message_thread_id;
   const finalExtra = threadId && extra.message_thread_id === undefined
     ? { ...extra, message_thread_id: threadId }
     : extra;
-  sendMessage(ctx.message.chat.id, ctx.messenger, msgText, finalExtra);
+  sendMessage(chatId, ctx.messenger, msgText, finalExtra);
 };
 
-export { strictEscape, sendMessage, reply };
+export { strictEscape, sendMessage, reply, editForumTopicName };

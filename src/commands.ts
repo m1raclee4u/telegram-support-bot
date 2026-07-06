@@ -35,6 +35,18 @@ const helpCommand = (ctx: Context, extra?: any): void => {
  */
 const clearCommand = (ctx: Context): void => {
   if (!ctx.session.admin) return;
+  db.open((tickets: ISupportee[]) => {
+    tickets.forEach(ticket => {
+      if (ticket.threadId) {
+        middleware.editForumTopicName(
+          cache.config.staffchat_id,
+          ctx.messenger,
+          ticket.threadId,
+          db.ticketTopicName(ticket.ticketId, ticket.name, 'closed'),
+        );
+      }
+    });
+  }, []);
   db.closeAll();
   // Reset the ticket arrays
   cache.ticketIDs.length = 0;
@@ -121,6 +133,14 @@ const closeCommand = (ctx: Context): void => {
     tickets.forEach(ticket => {
       if (ticket.id.toString().padStart(6, '0') === ticketId) {
         db.add(ticket.userid, 'closed', ticket.category, ctx.messenger);
+        if (ticket.threadId) {
+          middleware.editForumTopicName(
+            cache.config.staffchat_id,
+            ctx.messenger,
+            ticket.threadId,
+            db.ticketTopicName(ticket.ticketId, ticket.name, 'closed'),
+          );
+        }
       }
       userId = ticket.userid;
     });
@@ -169,8 +189,16 @@ const reopenCommand = (ctx: Context): void => {
   if (!replyText) return;
   const ticketId = extractTicketId(replyText);
   if (!ticketId) return;
-  db.getByTicketId(ticketId, (ticket: { userid: any; id: { toString: () => string } }) => {
+  db.getByTicketId(ticketId, (ticket: { userid: any; id: { toString: () => string }; ticketId: number; name: string | null; threadId: number | null }) => {
     db.reopen(ticket.userid, '', ctx.messenger);
+    if (ticket.threadId) {
+      middleware.editForumTopicName(
+        cache.config.staffchat_id,
+        ctx.messenger,
+        ticket.threadId,
+        db.ticketTopicName(ticket.ticketId, ticket.name, 'open'),
+      );
+    }
     middleware.sendMessage(
       ctx.chat.id,
       ctx.messenger,

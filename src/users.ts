@@ -104,7 +104,7 @@ async function ensureTicketThread(
   if (ticket.threadId) {
     return ticket.threadId;
   }
-  const topicName = `#T${ticket.ticketId.toString().padStart(6, '0')} ${ctx.message.from.first_name}`.trim();
+  const topicName = db.ticketTopicName(ticket.ticketId, ctx.message.from.first_name, 'open');
   const threadId = await bot.createForumTopic(config.staffchat_id, topicName);
   if (threadId) {
     ticket.threadId = threadId;
