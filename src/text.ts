@@ -70,6 +70,19 @@ export async function ticketHandler(bot: Addon, ctx: Context): Promise<ISupporte
     const ticket = await db.getTicketByUserId(message.from.id, session.groupCategory)
     if (!ticket) {
       db.add(message.from.id, 'open', session.groupCategory, messenger);
+    } else if (ticket.status === 'closed') {
+      // User is writing again after their ticket was closed - reopen it and
+      // reflect that in the forum topic's name (banned users never reach here,
+      // they're filtered out earlier by the permissions middleware).
+      db.reopen(message.from.id, session.groupCategory, messenger);
+      if (ticket.threadId) {
+        middleware.editForumTopicName(
+          cache.config.staffchat_id,
+          messenger,
+          ticket.threadId,
+          db.ticketTopicName(ticket.ticketId, ticket.name, 'open'),
+        );
+      }
     }
     users.chat(ctx, message.chat, bot);
     return ticket;
