@@ -4,18 +4,23 @@ services:
     restart: unless-stopped
     volumes:
       - ./config:/bot/config
+    # No inbound port needed: the bot talks to Telegram via long-polling
+    # (outbound only). web_server_port is only relevant if the (currently
+    # stubbed) built-in web widget gets implemented.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/support
 
   mongodb:
     image: mongo:6.0
     restart: unless-stopped
+    # Bound to localhost only - Mongo has no auth configured, so publishing
+    # this on 0.0.0.0 would expose the whole database to the internet.
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
-      - ./.tmp/mongodb_data:/data/db 
+      - ./.tmp/mongodb_data:/data/db
 
   signal-cli:
     image: bbernhard/signal-cli-rest-api:latest
@@ -24,7 +29,7 @@ services:
       - MODE=json-rpc #supported modes: json-rpc, native, normal
       #- AUTO_RECEIVE_SCHEDULE=0 22 * * * #enable this parameter on demand (see description below)
     ports:
-      - "40153:8080"
+      - "127.0.0.1:40153:8080"
     volumes:
       - signal:/home/.local/share/signal-cli
 
@@ -32,13 +37,15 @@ services:
   mongo-express:
     image: mongo-express
     restart: unless-stopped
+    # Bound to localhost only - default creds below are public knowledge
+    # (this image's documented defaults), never expose this on 0.0.0.0.
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     environment:
       - ME_CONFIG_MONGODB_SERVER=mongodb
       - ME_CONFIG_MONGODB_PORT=27017
       - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=password  
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
 
 volumes:
   mongodb_data:
