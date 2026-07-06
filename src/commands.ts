@@ -20,11 +20,12 @@ const extractTicketId = (replyText: string): string | undefined => {
  * Display help text depending on whether the user is an admin.
  *
  * @param ctx - The bot context.
+ * @param extra - Extra reply options (e.g. an inline FAQ button), merged over the default parse_mode.
  */
-const helpCommand = (ctx: Context): void => {
+const helpCommand = (ctx: Context, extra?: any): void => {
   const { language, parse_mode } = cache.config;
   const text = ctx.session.admin ? language.helpCommandStaffText : language.helpCommandText;
-  middleware.reply(ctx, text, { parse_mode });
+  middleware.reply(ctx, text, extra || { parse_mode });
 };
 
 /**
@@ -39,7 +40,7 @@ const clearCommand = (ctx: Context): void => {
   cache.ticketIDs.length = 0;
   cache.ticketStatus.length = 0;
   cache.ticketSent.length = 0;
-  middleware.reply(ctx, 'All tickets closed.');
+  middleware.reply(ctx, cache.config.language.allTicketsClosed || 'All tickets closed.');
 };
 
 /**
@@ -194,7 +195,7 @@ const unbanCommand = (ctx: Context): void => {
     middleware.sendMessage(
       ctx.chat.id,
       ctx.messenger,
-      `${cache.config.language.usr_with_ticket} #T${ticket.id.toString().padStart(6, '0')} unbanned`
+      `${cache.config.language.usr_with_ticket} #T${ticket.id.toString().padStart(6, '0')} ${cache.config.language.unbanned || 'unbanned'}`
     );
   });
 };

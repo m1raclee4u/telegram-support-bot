@@ -39,5 +39,7 @@ COPY --from=builder /bot/build /bot/build
 # Set NODE_ENV to production
 ENV NODE_ENV=production
 
-# Run the application
-CMD ["npm", "run", "prod", "--prefix", "/bot"]
+# Run the already-built app directly — the production stage has no
+# tsconfig.json/src, so re-running `npm run build` (as `npm run prod` does)
+# fails here and crash-loops the container.
+CMD ["node", "build/index.js"]

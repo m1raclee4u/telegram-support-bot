@@ -213,7 +213,7 @@ describe('Text Module', () => {
         null,
         'telegram'
       );
-      expect(mockUserChat).toHaveBeenCalledWith(ctx, ctx.message.chat);
+      expect(mockUserChat).toHaveBeenCalledWith(ctx, ctx.message.chat, mockAddon);
       expect(result).toBeNull();
     });
 
@@ -230,7 +230,7 @@ describe('Text Module', () => {
       const result = await text.ticketHandler(mockAddon as any, ctx);
 
       expect(mockAdd).not.toHaveBeenCalled(); // No new ticket created
-      expect(mockUserChat).toHaveBeenCalledWith(ctx, ctx.message.chat);
+      expect(mockUserChat).toHaveBeenCalledWith(ctx, ctx.message.chat, mockAddon);
       expect(result).toEqual(existingTicket);
     });
 

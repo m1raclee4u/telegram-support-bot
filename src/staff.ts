@@ -105,25 +105,32 @@ async function chat(ctx: Context) {
     return;
   }
 
-  const replyMsg = ctx.message?.reply_to_message;
-  if (!replyMsg) return;
+  // Forum topics: staff can just type inside the ticket's own room, no need to
+  // reply to a specific bot message — match the ticket via its thread first.
+  const threadId = ctx.message?.message_thread_id;
+  var ticket = threadId ? await db.getTicketByThreadId(threadId) : null;
+  var ticketId = ticket?.ticketId;
+  var replyText: string;
 
-  const replyText = replyMsg.text || replyMsg.caption;
-  const replyMessageId = ctx.message.external_reply?.message_id;
-  if (!replyText && !replyMessageId) return;
+  if (!ticket) {
+    const replyMsg = ctx.message?.reply_to_message;
+    if (!replyMsg) return;
 
-  var ticket;
-  var ticketId;
-  if (replyMessageId) {
-    ticket = await db.getTicketByInternalId(replyMessageId);
-    if (ticket) {
-      ticketId = ticket.ticketId;
+    replyText = replyMsg.text || replyMsg.caption;
+    const replyMessageId = ctx.message.external_reply?.message_id;
+    if (!replyText && !replyMessageId) return;
+
+    if (replyMessageId) {
+      ticket = await db.getTicketByInternalId(replyMessageId);
+      if (ticket) {
+        ticketId = ticket.ticketId;
+      }
+    } else {
+      ticketId = parseInt(await extractTicketId(replyText, ctx));
+
+      if (!ticketId) return;
+      ticket = await db.getTicketById(ticketId, ctx.session.groupCategory);
     }
-  } else {
-    ticketId = parseInt(await extractTicketId(replyText, ctx));
-    
-    if (!ticketId) return;
-    ticket = await db.getTicketById(ticketId, ctx.session.groupCategory);
   }
 
   if (!ticket) {
@@ -142,6 +149,9 @@ async function chat(ctx: Context) {
   cache.ticketStatus[ticketId] = false;
 
   // Reply to web users differently
+  const staffExtra = threadId
+    ? { parse_mode: cache.config.parse_mode, message_thread_id: threadId }
+    : { parse_mode: cache.config.parse_mode };
   if (ticket.userid.includes('WEB')) {
     try {
       const socketId = ticket.userid.split('WEB')[1];
@@ -151,6 +161,7 @@ async function chat(ctx: Context) {
         ctx.chat.id,
         ticket.messenger,
         `Web chat already closed.`,
+        staffExtra,
       );
       log.error(e);
     }
@@ -162,6 +173,7 @@ async function chat(ctx: Context) {
     ctx.chat.id,
     cache.config.staffchat_type,
     `${cache.config.language.msg_sent} ${esc(name)}`,
+    staffExtra,
   );
   log.info(`Answer: ${ticketMsg(name, ctx.message)}`);
   cache.ticketSent[ticketId] = null;

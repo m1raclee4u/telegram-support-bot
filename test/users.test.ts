@@ -159,7 +159,7 @@ describe('Users Module', () => {
         'staff123',
         'telegram',
         expect.stringContaining('#T001001')
-      );
+      , { parse_mode: 'MarkdownV2' });
     });
 
     it('should handle spam protection for repeated messages', async () => {
@@ -187,7 +187,7 @@ describe('Users Module', () => {
         'staff123',
         'telegram',
         expect.stringContaining('#T001002')
-      );
+      , { parse_mode: 'MarkdownV2' });
     });
 
     it('should block user when spam limit reached', async () => {
@@ -230,7 +230,7 @@ describe('Users Module', () => {
         'staff123',
         'telegram',
         expect.stringContaining('#T001003')
-      );
+      , { parse_mode: 'MarkdownV2' });
       
       expect(mockSendMessage).toHaveBeenCalledWith(
         'group456',

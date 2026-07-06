@@ -1,4 +1,4 @@
-import { Context, Messenger, ParseMode } from './interfaces';
+import { Addon, Context, Messenger, ParseMode } from './interfaces';
 import cache from './cache';
 import * as llm from './addons/llm';
 import * as db from './db';
@@ -84,17 +84,49 @@ async function autoReply(ctx: Context): Promise<boolean> {
 }
 
 /**
+ * Ensures the ticket has its own forum topic ("room") in the staff chat, creating
+ * one on first use when staffchat_is_forum is enabled. Returns the thread id to
+ * attach to messages sent to the staff chat, or undefined when topics aren't used.
+ *
+ * @param ticket - The ticket to create/reuse a topic for.
+ * @param ctx - Bot context (used for the topic's display name).
+ * @param bot - Addon instance; only Telegram currently implements createForumTopic.
+ */
+async function ensureTicketThread(
+  ticket: ISupportee,
+  ctx: Context,
+  bot?: Addon,
+): Promise<number | undefined> {
+  const { config } = cache;
+  if (!config.staffchat_is_forum || !bot?.createForumTopic) {
+    return undefined;
+  }
+  if (ticket.threadId) {
+    return ticket.threadId;
+  }
+  const topicName = `#T${ticket.ticketId.toString().padStart(6, '0')} ${ctx.message.from.first_name}`.trim();
+  const threadId = await bot.createForumTopic(config.staffchat_id, topicName);
+  if (threadId) {
+    ticket.threadId = threadId;
+    await db.setThreadId(ticket.ticketId, threadId);
+  }
+  return threadId ?? undefined;
+}
+
+/**
  * Processes a ticket by sending confirmation and forwarding it to staff and group chats.
  *
  * @param ticket - The ticket retrieved from the database.
  * @param ctx - Bot context.
  * @param chatId - The chat id for sending confirmation.
+ * @param bot - Addon instance used to create a forum topic for the ticket, if enabled.
  * @param autoReplyInfo - Optional auto-reply info.
  */
 async function processTicket(
   ticket: ISupportee,
   ctx: Context,
   chatId: string,
+  bot?: Addon,
   autoReplyInfo?: string,
 ) {
   const { config } = cache;
@@ -115,7 +147,8 @@ async function processTicket(
     sendMessage(chatId, ticket.messenger, confirmationMsg);
   }
 
-  // Send ticket message to staff chat
+  // Send ticket message to staff chat, creating its own forum topic ("room") if enabled
+  const threadId = await ensureTicketThread(ticket, ctx, bot);
   const messageId = await sendMessage(
     config.staffchat_id,
     config.staffchat_type,
@@ -124,6 +157,9 @@ async function processTicket(
       ctx,
       autoReplyInfo,
     ),
+    threadId
+      ? { parse_mode: config.parse_mode, message_thread_id: threadId }
+      : { parse_mode: config.parse_mode },
   );
   db.addIdAndName(ticket.ticketId, messageId, ctx.message.from.first_name);
 
@@ -172,7 +208,7 @@ async function processTicket(
  * @param ctx - Bot context.
  * @param chat - Chat object containing an id.
  */
-async function chat(ctx: Context, chat: { id: string }) {
+async function chat(ctx: Context, chat: { id: string }, bot?: Addon) {
   const { config } = cache;
   cache.userId = ctx.message.from.id;
   const isAutoReply = await autoReply(ctx);
@@ -188,7 +224,7 @@ async function chat(ctx: Context, chat: { id: string }) {
   // If no ticket has been sent yet, fetch from DB and set up spam timer
   if (cache.ticketSent[cache.userId] === undefined) {
     const ticket = await db.getTicketByUserId(chat.id, ctx.session.groupCategory);
-    processTicket(ticket, ctx, chat.id, autoReplyInfo);
+    processTicket(ticket, ctx, chat.id, bot, autoReplyInfo);
 
     // Prevent multiple notifications for a period defined by spam_time
     setTimeout(() => {
@@ -206,6 +242,9 @@ async function chat(ctx: Context, chat: { id: string }) {
         ctx,
         autoReplyInfo,
       ),
+      ticket.threadId
+        ? { parse_mode: config.parse_mode, message_thread_id: ticket.threadId }
+        : { parse_mode: config.parse_mode },
     );
     if (ctx.session.group && ctx.session.group !== config.staffchat_id) {
       sendMessage(

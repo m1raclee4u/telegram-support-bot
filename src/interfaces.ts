@@ -68,6 +68,10 @@ export interface Language {
   yourTicketId: string;
   helpCommandStaffText: string;
   regardsGroup: string;
+  allTicketsClosed: string;
+  unbanned: string;
+  msgSendError: string;
+  faqButton: string;
   autoreply: Autoreply[];
 }
 
@@ -95,6 +99,7 @@ export class Config {
   staffchat_id: string | number;
   staffchat_type: Messenger = Messenger.TELEGRAM;
   staffchat_parse_mode: ParseMode = ParseMode.MarkdownV2;
+  staffchat_is_forum: boolean = false;
   owner_id: string;
   spam_time: number = 5;
   parse_mode: string = ParseMode.MarkdownV2;
@@ -120,6 +125,8 @@ export class Config {
   pass_start: boolean = false;
   categories: Category[] = [];
   mongodb_uri: string = 'mongodb://mongodb:27017/support';
+  faq_service_url: string = '';
+  faq_cache_time: number = 300;
   use_llm: boolean = false;
   llm_api_key: string;
   llm_base_url: string;
@@ -163,6 +170,7 @@ export class Context {
     };
     date: number;
     text: string;
+    message_thread_id?: number;
     reply_to_message: {
       from: { is_bot: boolean };
       text: string;
@@ -247,6 +255,14 @@ export interface Addon {
    * @param handler The error handler function.
    */
   catch(handler: (error: any, ctx?: any) => void): void;
+
+  /**
+   * Creates a forum topic (separate "room") in a forum-enabled supergroup.
+   * Returns the created topic's message_thread_id, or null if unsupported/failed.
+   * @param chatId The target chat identifier.
+   * @param name The topic name.
+   */
+  createForumTopic?(chatId: string | number, name: string): Promise<number | null>;
 }
 
 export enum Messenger {

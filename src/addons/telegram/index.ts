@@ -87,6 +87,16 @@ class TelegramAddon implements Addon {
     this.bot.api.sendVideo(chatId, video, options);
   }
 
+  async createForumTopic(chatId: string | number, name: string): Promise<number | null> {
+    try {
+      const topic = await this.bot.api.createForumTopic(chatId, name.slice(0, 128));
+      return topic.message_thread_id;
+    } catch (err) {
+      log.error('Could not create forum topic (is staffchat a forum-enabled supergroup?): ', err);
+      return null;
+    }
+  }
+
   command(command: string, callback: (ctx: any) => void): void {
     this.bot.command(command, ctx => callback(ctx));
   }

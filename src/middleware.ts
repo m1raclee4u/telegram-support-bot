@@ -77,7 +77,12 @@ const reply = (
   msgText: string,
   extra: any = { parse_mode: cache.config.parse_mode }
 ): void => {
-  sendMessage(ctx.message.chat.id, ctx.messenger, msgText, extra);
+  // Keep the reply inside the forum topic (if any) the incoming message came from.
+  const threadId = ctx.message?.message_thread_id;
+  const finalExtra = threadId && extra.message_thread_id === undefined
+    ? { ...extra, message_thread_id: threadId }
+    : extra;
+  sendMessage(ctx.message.chat.id, ctx.messenger, msgText, finalExtra);
 };
 
 export { strictEscape, sendMessage, reply };

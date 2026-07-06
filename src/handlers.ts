@@ -3,6 +3,7 @@ import * as middleware from './middleware';
 import * as inline from './inline';
 import * as files from './files';
 import * as text from './text';
+import * as faq from './faq';
 import cache from './cache';
 import * as log from 'fancy-log'
 
@@ -21,13 +22,15 @@ export function registerCommonHandlers(addon: any, keys?: any) {
     })
   );
 
-  addon.command('faq', (ctx: any) =>
-    middleware.reply(ctx, cache.config.language.faqCommandText, {
+  addon.command('faq', async (ctx: any) =>
+    middleware.reply(ctx, await faq.getFaqText(), {
       parse_mode: cache.config.parse_mode,
     })
   );
 
-  addon.command('help', (ctx: any) => commands.helpCommand(ctx));
+  addon.command('help', (ctx: any) =>
+    commands.helpCommand(ctx, addon.platform === 'telegram' ? inline.faqButtonKeyboard() : undefined)
+  );
 
   // Common "links" command with platform-specific URL handling.
   addon.command('links', (ctx: any) => {
@@ -61,7 +64,11 @@ export function registerCommonHandlers(addon: any, keys?: any) {
   if (cache.config.pass_start === false) {
     addon.command('start', (ctx: any) => {
       if (ctx.chat.type === 'private') {
-        middleware.reply(ctx, cache.config.language.startCommandText);
+        middleware.reply(
+          ctx,
+          cache.config.language.startCommandText,
+          addon.platform === 'telegram' ? inline.faqButtonKeyboard() : undefined,
+        );
         if (cache.config.categories && cache.config.categories.length > 0) {
           // For Telegram, use inline keyboard keys if available.
           if (addon.platform === 'telegram' && keys) {
@@ -81,7 +88,7 @@ export function registerCommonHandlers(addon: any, keys?: any) {
   }
 
   // Register event handlers for callback queries and file types.
-  addon.on('callback_query', (ctx: any) => inline.callbackQuery(ctx));
+  addon.on('callback_query', (ctx: any) => Promise.resolve(inline.callbackQuery(ctx)));
   addon.on([':photo'], (ctx: any) => files.fileHandler('photo', addon, ctx));
   addon.on([':video'], (ctx: any) => files.fileHandler('video', addon, ctx));
   addon.on([':document'], (ctx: any) => files.fileHandler('document', addon, ctx));
@@ -101,7 +108,7 @@ export function registerCommonHandlers(addon: any, keys?: any) {
   addon.catch((err: any, ctx: any) => {
     log.error('Error: ', err);
     try {
-      middleware.reply(ctx, 'Message is not sent due to an error.');
+      middleware.reply(ctx, cache.config.language.msgSendError || 'Message is not sent due to an error.');
     } catch (e) {
       log.error('Could not send error msg to chat: ', e);
     }

@@ -71,7 +71,7 @@ export async function ticketHandler(bot: Addon, ctx: Context): Promise<ISupporte
     if (!ticket) {
       db.add(message.from.id, 'open', session.groupCategory, messenger);
     }
-    users.chat(ctx, message.chat);
+    users.chat(ctx, message.chat, bot);
     return ticket;
   }
 

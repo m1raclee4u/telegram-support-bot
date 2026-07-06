@@ -10,7 +10,7 @@ services:
       - MONGO_URI=mongodb://mongodb:27017/support
 
   mongodb:
-    image: mongo:8.0
+    image: mongo:6.0
     restart: unless-stopped
     ports:
       - "27017:27017"

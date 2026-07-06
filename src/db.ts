@@ -15,6 +15,7 @@ export interface ISupportee extends mongoose.Document {
   messenger: Messenger;
   status: string;
   category: string | null;
+  threadId: number | null;
 }
 
 export const SupporteeSchema = new mongoose.Schema<ISupportee>({
@@ -25,6 +26,7 @@ export const SupporteeSchema = new mongoose.Schema<ISupportee>({
   messenger: { type: String, required: true },
   status: { type: String, default: 'open' },
   category: { type: String, default: null },
+  threadId: { type: Number, default: null },
 });
 
 const Supportee = mongoose.model(collectionName, SupporteeSchema);
@@ -78,6 +80,20 @@ export async function getTicketById(
   };
   const result = await Supportee.findOne(query);
   return result as ISupportee | null;
+};
+
+export async function getTicketByThreadId (
+  threadId: number
+): Promise<ISupportee | null> {
+  const result = await Supportee.findOne({ threadId });
+  return result as ISupportee | null;
+}
+
+export const setThreadId = async (
+  ticketId: string | number,
+  threadId: number,
+) => {
+  await Supportee.findOneAndUpdate({ ticketId }, { $set: { threadId } });
 };
 
 export async function getTicketByInternalId (

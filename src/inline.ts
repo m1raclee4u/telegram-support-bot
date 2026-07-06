@@ -2,6 +2,7 @@ import { Context, Messenger, ModeData } from './interfaces';
 import TelegramAddon from './addons/telegram';
 import cache from './cache';
 import * as middleware from './middleware';
+import * as faq from './faq';
 
 /**
  * Helper function for reply keyboard.
@@ -22,6 +23,19 @@ const replyKeyboard = (keys: any[]) => ({
 const removeKeyboard = () => ({
   parse_mode: cache.config.parse_mode,
   reply_markup: { remove_keyboard: true },
+});
+
+/**
+ * Builds an inline keyboard with a single button that opens the FAQ.
+ * Attach as the `extra` argument to a `middleware.reply` call.
+ *
+ * @returns An object containing reply_markup with a FAQ button.
+ */
+const faqButtonKeyboard = () => ({
+  parse_mode: cache.config.parse_mode,
+  reply_markup: {
+    inline_keyboard: [[{ text: cache.config.language.faqButton, callback_data: 'FAQ' }]],
+  },
 });
 
 /**
@@ -130,12 +144,21 @@ function initInline(bot: TelegramAddon) {
  *
  * @param ctx - The context of the callback.
  */
-function callbackQuery(ctx: Context) {
+async function callbackQuery(ctx: Context) {
   // End callback session if data equals 'R'
   if (ctx.callbackQuery.data === 'R') {
     ctx.session.mode = '';
     ctx.session.modeData = {} as ModeData;
     middleware.reply(ctx, cache.config.language.prvChatEnded);
+    return;
+  }
+
+  // FAQ button pressed (attached to /start or /help)
+  if (ctx.callbackQuery.data === 'FAQ') {
+    middleware.reply(ctx, await faq.getFaqText(), {
+      parse_mode: cache.config.parse_mode,
+    });
+    ctx.answerCbQuery('', false);
     return;
   }
   // Extract parts from callback data.
@@ -172,4 +195,4 @@ function callbackQuery(ctx: Context) {
   ctx.answerCbQuery(cache.config.language.instructionsSent, true);
 }
 
-export { callbackQuery, initInline, replyKeyboard, removeKeyboard };
+export { callbackQuery, initInline, replyKeyboard, removeKeyboard, faqButtonKeyboard };
