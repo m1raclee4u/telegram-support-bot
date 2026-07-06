@@ -2,6 +2,9 @@ services:
   supportbot:
     build: .
     restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
     volumes:
       - ./config:/bot/config
     # No inbound port needed: the bot talks to Telegram via long-polling
@@ -15,6 +18,11 @@ services:
   mongodb:
     image: mongo:6.0
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     # Bound to localhost only - Mongo has no auth configured, so publishing
     # this on 0.0.0.0 would expose the whole database to the internet.
     ports:
